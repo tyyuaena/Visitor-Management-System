@@ -1,0 +1,140 @@
+import { useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { activateAccount } from "../../services/authService";
+import PasswordInput from "../../components/ui/PasswordInput";
+
+export default function ActivateAccount() {
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const email = searchParams.get("email") || "";
+    const token = searchParams.get("token") || "";
+
+    const [password, setPassword] = useState("");
+    const [passwordConfirmation, setPasswordConfirmation] = useState("");
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError("");
+
+        if (!email || !token) {
+            setError("This activation link is missing required information.");
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            await activateAccount({
+                email,
+                token,
+                password,
+                password_confirmation: passwordConfirmation,
+            });
+
+            navigate("/login", {
+                replace: true,
+                state: { message: "Account activated successfully. Please log in." },
+            });
+
+        } catch (error) {
+            console.error("Activation failed:", error);
+
+            if (error.response?.status === 422 && error.response?.data?.errors) {
+                const firstError = Object.values(error.response.data.errors)[0]?.[0];
+                setError(firstError || "Please check your input.");
+            } else {
+                setError(
+                    error.response?.data?.message || "Unable to activate this account."
+                );
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-bg flex items-center justify-center p-6">
+
+            <div className="w-full max-w-sm">
+
+                <div className="text-center mb-8">
+                    <h1 className="text-3xl font-bold text-text tracking-tight">
+                        VMS
+                    </h1>
+                    <p className="text-text-muted mt-1 text-sm">
+                        Activate your account
+                    </p>
+                </div>
+
+                <div className="bg-surface border border-border rounded-2xl p-6">
+
+                    {error && (
+                        <div className="bg-danger-bg text-danger text-sm p-3 rounded-lg mb-4">
+                            {error}
+                        </div>
+                    )}
+
+                    {!email || !token ? (
+                        <p className="text-text-muted text-sm">
+                            This activation link is invalid. Please contact your administrator
+                            for a new one.
+                        </p>
+                    ) : (
+                        <form onSubmit={handleSubmit} className="space-y-4">
+
+                            <p className="text-sm text-text-muted">
+                                Activating account for <span className="text-text font-medium">{email}</span>.
+                                Set a password to finish setting up your account.
+                            </p>
+
+                            <div>
+                                <label className="block mb-1.5 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                                    Password
+                                </label>
+                                <PasswordInput
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full bg-surface-alt border border-border text-text rounded-lg px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                    minLength={8}
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block mb-1.5 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                                    Confirm Password
+                                </label>
+                                <PasswordInput
+                                    value={passwordConfirmation}
+                                    onChange={(e) => setPasswordConfirmation(e.target.value)}
+                                    className="w-full bg-surface-alt border border-border text-text rounded-lg px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                    minLength={8}
+                                    required
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50"
+                            >
+                                {loading ? "Activating..." : "Activate Account"}
+                            </button>
+                        </form>
+                    )}
+
+                </div>
+
+                <p className="text-center text-text-muted text-sm mt-6">
+                    <Link to="/login" className="text-primary font-medium">
+                        Back to Sign In
+                    </Link>
+                </p>
+
+            </div>
+
+        </div>
+    );
+}
