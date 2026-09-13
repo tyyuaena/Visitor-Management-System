@@ -1,12 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getVisitorLogs, checkoutVisitor, getVerificationAttempts } from "../../services/guardService";
 import TopNav from "../../components/nav/TopNav";
 import StatusPill from "../../components/ui/StatusPill";
+import SubTabButton from "../../components/ui/SubTabButton";
+import { QR_STATUS_STYLES, QR_STATUS_LABELS } from "../../constants/qrStatus";
 
-const TABS = [
-    { label: "Scan", to: "/guard/scan" },
-    { label: "Log", to: "/guard/log" },
-];
+import { GUARD_TABS as TABS } from "../../constants/navTabs";
 
 const STATUS_OPTIONS = [
     { value: "all", label: "All" },
@@ -63,50 +62,80 @@ export default function GuardLog() {
     );
 }
 
-function SubTabButton({ active, onClick, children }) {
-    return (
-        <button
-            onClick={onClick}
-            className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                active ? "bg-primary text-white" : "bg-surface-alt text-text-muted border border-border"
-            }`}
-        >
-            {children}
-        </button>
-    );
-}
-
 function VisitorLog() {
     const [visitors, setVisitors] = useState([]);
+    const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [message, setMessage] = useState("");
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState("all");
     const [date, setDate] = useState("");
+    const [page, setPage] = useState(1);
     const [expandedId, setExpandedId] = useState(null);
     const [processingId, setProcessingId] = useState(null);
 
-    const loadLogs = async () => {
+    // Guards against out-of-order responses landing after a newer request
+    // has already been sent — this page fires fetches from two independent
+    // effects (status/date, and debounced search) plus manual pagination,
+    // so without this a slow earlier response can silently clobber newer
+    // results (also matters in React StrictMode's dev-only double-invoke).
+    const requestId = useRef(0);
+
+    const loadLogs = async (targetPage = page) => {
+        const thisRequestId = ++requestId.current;
         setLoading(true);
         setError("");
 
         try {
-            const response = await getVisitorLogs();
-            setVisitors(response.visitors || []);
+            const response = await getVisitorLogs({
+                search: search || undefined,
+                status: status === "all" ? undefined : status,
+                date: date || undefined,
+                page: targetPage,
+            });
+
+            if (thisRequestId !== requestId.current) return;
+
+            const paginated = response.visitors || {};
+            setVisitors(paginated.data || []);
+            setMeta({
+                current_page: paginated.current_page || 1,
+                last_page: paginated.last_page || 1,
+                total: paginated.total ?? (paginated.data || []).length,
+            });
         } catch (err) {
+            if (thisRequestId !== requestId.current) return;
             console.error(err);
             setError(
                 err.response?.data?.message || "Unable to load visitor logs."
             );
         } finally {
-            setLoading(false);
+            if (thisRequestId === requestId.current) setLoading(false);
         }
     };
 
+    // Status/date changes and pagination apply immediately; free-text search
+    // is debounced so it doesn't fire a request on every keystroke.
     useEffect(() => {
-        loadLogs();
-    }, []);
+        loadLogs(1);
+        setPage(1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [status, date]);
+
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            loadLogs(1);
+            setPage(1);
+        }, 400);
+        return () => clearTimeout(timeout);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search]);
+
+    const goToPage = (nextPage) => {
+        setPage(nextPage);
+        loadLogs(nextPage);
+    };
 
     const handleCheckout = async (visitorId) => {
         if (!window.confirm("Are you sure this visitor has left the premises?")) {
@@ -120,7 +149,7 @@ function VisitorLog() {
         try {
             const response = await checkoutVisitor(visitorId);
             setMessage(response.message || "Visitor checked out successfully.");
-            await loadLogs();
+            await loadLogs(page);
         } catch (err) {
             console.error(err);
             setError(
@@ -131,36 +160,13 @@ function VisitorLog() {
         }
     };
 
-    const filteredVisitors = useMemo(() => {
-        let result = visitors;
-
-        if (status !== "all") {
-            result = result.filter((v) => v.status === status);
-        }
-
-        if (date) {
-            result = result.filter((v) => v.expected_at && v.expected_at.slice(0, 10) === date);
-        }
-
-        const keyword = search.trim().toLowerCase();
-        if (keyword) {
-            result = result.filter((v) =>
-                v.name?.toLowerCase().includes(keyword) ||
-                v.unit?.toLowerCase().includes(keyword) ||
-                v.resident?.name?.toLowerCase().includes(keyword)
-            );
-        }
-
-        return result;
-    }, [visitors, status, search, date]);
-
     const currentlyInside = visitors.filter((v) => v.status === "checked_in").length;
 
     return (
         <>
             <div className="flex items-center justify-between mb-3">
                 <span className="text-xs text-text-muted">
-                    {filteredVisitors.length} record{filteredVisitors.length === 1 ? "" : "s"}
+                    {meta.total} record{meta.total === 1 ? "" : "s"}
                 </span>
                 <span className="bg-success-bg text-success text-xs font-semibold px-3 py-1.5 rounded-full">
                     {currentlyInside} Inside
@@ -241,7 +247,7 @@ function VisitorLog() {
                     <div className="p-8 text-center text-text-muted text-sm">
                         Loading visitor logs...
                     </div>
-                ) : filteredVisitors.length === 0 ? (
+                ) : visitors.length === 0 ? (
                     <div className="p-8 text-center text-text-muted text-sm">
                         No visitor records found.
                     </div>
@@ -253,7 +259,7 @@ function VisitorLog() {
                             <span>Status</span>
                         </div>
 
-                        {filteredVisitors.map((visitor) => {
+                        {visitors.map((visitor) => {
                             const isExpanded = expandedId === visitor.id;
 
                             return (
@@ -285,6 +291,14 @@ function VisitorLog() {
                                                 <Row label="Phone" value={visitor.phone} />
                                                 <Row label="Purpose" value={visitor.purpose} />
                                                 <Row label="Expected" value={formatDateTime(visitor.expected_at)} />
+                                                {visitor.qr_status && (
+                                                    <div className="flex justify-between items-center gap-3">
+                                                        <span className="text-text-muted">QR Status</span>
+                                                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${QR_STATUS_STYLES[visitor.qr_status] || "bg-white/10 text-text-muted"}`}>
+                                                            {QR_STATUS_LABELS[visitor.qr_status] || visitor.qr_status}
+                                                        </span>
+                                                    </div>
+                                                )}
                                                 {visitor.checked_in_at && (
                                                     <Row
                                                         label="Checked In"
@@ -326,6 +340,28 @@ function VisitorLog() {
                 )}
 
             </div>
+
+            {meta.last_page > 1 && (
+                <div className="flex items-center justify-between mt-3">
+                    <button
+                        onClick={() => goToPage(page - 1)}
+                        disabled={page <= 1}
+                        className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-surface-alt border border-border text-text disabled:opacity-40"
+                    >
+                        Previous
+                    </button>
+                    <span className="text-xs text-text-muted">
+                        Page {meta.current_page} of {meta.last_page}
+                    </span>
+                    <button
+                        onClick={() => goToPage(page + 1)}
+                        disabled={page >= meta.last_page}
+                        className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-surface-alt border border-border text-text disabled:opacity-40"
+                    >
+                        Next
+                    </button>
+                </div>
+            )}
         </>
     );
 }
@@ -370,7 +406,7 @@ function RecentScans() {
                     </div>
                 ) : (
                     attempts.map((log) => {
-                        const failed = log.description?.startsWith("QR verification failed");
+                        const failed = log.result === "failure";
 
                         return (
                             <div key={log.id} className="px-4 py-3.5 border-b border-border last:border-b-0">

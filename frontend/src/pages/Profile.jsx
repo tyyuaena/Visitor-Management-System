@@ -2,23 +2,7 @@ import { useEffect, useState } from "react";
 import { fetchProfile, getStoredUser, changePassword } from "../services/authService";
 import TopNav from "../components/nav/TopNav";
 import PasswordInput from "../components/ui/PasswordInput";
-
-const TABS_BY_ROLE = {
-    resident: [
-        { label: "Register", to: "/resident/register" },
-        { label: "History", to: "/resident/history" },
-    ],
-    guard: [
-        { label: "Scan", to: "/guard/scan" },
-        { label: "Log", to: "/guard/log" },
-    ],
-    admin: [
-        { label: "Overview", to: "/admin" },
-        { label: "Residents", to: "/admin/residents" },
-        { label: "Reports", to: "/admin/reports" },
-        { label: "Settings", to: "/admin/settings" },
-    ],
-};
+import { TABS_BY_ROLE } from "../constants/navTabs";
 
 const fieldClass =
     "w-full bg-surface-alt border border-border text-text rounded-lg px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary";

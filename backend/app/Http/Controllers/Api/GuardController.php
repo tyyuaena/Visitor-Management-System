@@ -275,9 +275,36 @@ class GuardController extends Controller
         Request $request
     ): JsonResponse {
 
-        $visitors = Visitor::with(['resident', 'approver', 'rejector', 'checkoutGuard'])
+        $request->validate([
+            'search' => ['sometimes', 'string', 'max:255'],
+            'status' => ['sometimes', 'in:upcoming,checked_in,checked_out,cancelled,expired,rejected'],
+            'date' => ['sometimes', 'date_format:Y-m-d'],
+            'page' => ['sometimes', 'integer', 'min:1'],
+        ]);
+
+        $query = Visitor::with(['resident', 'approver', 'rejector', 'checkoutGuard']);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('unit', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('date')) {
+            $query->whereDate('expected_at', $request->date);
+        }
+
+        // Paginated: unfiltered, this previously loaded the entire visitors
+        // table on every guard log-page view, growing without bound.
+        $visitors = $query
             ->orderByDesc('created_at')
-            ->get();
+            ->paginate(50);
 
         return response()->json([
             'visitors' => $visitors,

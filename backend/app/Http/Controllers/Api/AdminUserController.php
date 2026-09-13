@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Support\AccountToken;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
@@ -77,8 +78,9 @@ class AdminUserController extends Controller
     public function store(Request $request): JsonResponse
     {
         $role = $request->input('role');
+        $needsActivation = $role === 'resident' || $role === 'admin';
 
-        if ($role === 'resident' || $role === 'admin') {
+        if ($needsActivation) {
             $rules = [
                 'name' => ['required', 'string', 'max:255',],
                 'email' => ['required', 'email', 'max:255', 'unique:users,email',],
@@ -91,16 +93,14 @@ class AdminUserController extends Controller
 
             $validated = $request->validate($rules);
 
-            $user = User::create([
+            $userData = [
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => Str::random(40), // unusable placeholder; the person sets their own via activation
                 'role' => $validated['role'],
                 'unit' => $validated['unit'] ?? null,
                 'status' => 'pending',
-            ]);
-
-            $this->sendActivationEmail($user);
+            ];
 
         } else {
             $validated = $request->validate([
@@ -110,27 +110,47 @@ class AdminUserController extends Controller
                 'role' => ['required', 'in:guard',],
             ]);
 
-            $user = User::create([
+            $userData = [
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => $validated['password'],
                 'role' => $validated['role'],
                 'status' => 'active',
-            ]);
+            ];
         }
 
-        // Record audit log — this is also where the account's role is
-        // assigned (roles can't be changed after creation), so the entry
-        // doubles as the role-assignment record.
-        AuditLog::record(
-            request: $request,
-            action: 'create_user',
-            description: 'Created ' . $user->role . ' account: ' . $user->email,
-            userId: $request->user()->id,
-            userRole: $request->user()->role,
-            targetType: 'user',
-            targetId: $user->id,
-        );
+        // The account row and its audit-log entry must succeed or fail
+        // together — previously the email was sent (and could throw)
+        // between the two, risking a created-but-unlogged account.
+        $user = DB::transaction(function () use ($request, $userData) {
+            $user = User::create($userData);
+
+            // Record audit log — this is also where the account's role is
+            // assigned (roles can't be changed after creation), so the
+            // entry doubles as the role-assignment record.
+            AuditLog::record(
+                request: $request,
+                action: 'create_user',
+                description: 'Created ' . $user->role . ' account: ' . $user->email,
+                userId: $request->user()->id,
+                userRole: $request->user()->role,
+                targetType: 'user',
+                targetId: $user->id,
+            );
+
+            return $user;
+        });
+
+        // Sent after the account is durably created — a mail-transport
+        // failure here shouldn't roll back (or 500) an otherwise-successful
+        // account creation; the admin can resend via resendActivation().
+        if ($needsActivation) {
+            try {
+                $this->sendActivationEmail($user);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
 
         return response()->json([
             'message' => $user->role !== 'guard'
@@ -252,7 +272,14 @@ class AdminUserController extends Controller
             ]);
         }
 
-        $this->sendActivationEmail($user);
+        try {
+            $this->sendActivationEmail($user);
+        } catch (\Throwable $e) {
+            report($e);
+            return response()->json([
+                'message' => 'Unable to send the activation email. Please try again.',
+            ], 502);
+        }
 
         AuditLog::record(
             request: $request,
@@ -288,14 +315,21 @@ class AdminUserController extends Controller
         $link = config('app.frontend_url') . '/reset-password?email=' .
             urlencode($user->email) . '&token=' . $token;
 
-        Mail::raw(
-            "Hello {$user->name},\n\nAn administrator has triggered a password reset for your VMS account. "
-            . "Use the link below to set a new password. This link expires in "
-            . self::RESET_TOKEN_EXPIRY_MINUTES . " minutes.\n\n{$link}",
-            function ($message) use ($user) {
-                $message->to($user->email)->subject('Your VMS password has been reset');
-            }
-        );
+        try {
+            Mail::raw(
+                "Hello {$user->name},\n\nAn administrator has triggered a password reset for your VMS account. "
+                . "Use the link below to set a new password. This link expires in "
+                . self::RESET_TOKEN_EXPIRY_MINUTES . " minutes.\n\n{$link}",
+                function ($message) use ($user) {
+                    $message->to($user->email)->subject('Your VMS password has been reset');
+                }
+            );
+        } catch (\Throwable $e) {
+            report($e);
+            return response()->json([
+                'message' => 'Unable to send the password reset email. Please try again.',
+            ], 502);
+        }
 
         AuditLog::record(
             request: $request,

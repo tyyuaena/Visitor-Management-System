@@ -20,8 +20,9 @@ class AdminVisitorController extends Controller
             'resident_id' => ['sometimes', 'integer', 'exists:users,id'],
             'unit' => ['sometimes', 'string', 'max:50'],
             'guard_id' => ['sometimes', 'integer', 'exists:users,id'],
-            'from' => ['sometimes', 'date'],
-            'to' => ['sometimes', 'date'],
+            'from' => ['sometimes', 'date_format:Y-m-d'],
+            'to' => ['sometimes', 'date_format:Y-m-d', 'after_or_equal:from'],
+            'page' => ['sometimes', 'integer', 'min:1'],
         ]);
 
         $query = Visitor::with(['resident', 'approver', 'rejector', 'checkoutGuard']);
@@ -81,7 +82,7 @@ class AdminVisitorController extends Controller
 
         $visitors = $query
             ->orderByDesc('expected_at')
-            ->get();
+            ->paginate(50);
 
         return response()->json([
             'visitors' => $visitors,

@@ -6,10 +6,7 @@ import TopNav from "../../components/nav/TopNav";
 import StatusPill from "../../components/ui/StatusPill";
 import { QR_STATUS_LABELS } from "../../constants/qrStatus";
 
-const TABS = [
-    { label: "Register", to: "/resident/register" },
-    { label: "History", to: "/resident/history" },
-];
+import { RESIDENT_TABS as TABS } from "../../constants/navTabs";
 
 export default function ResidentHistory() {
     const navigate = useNavigate();

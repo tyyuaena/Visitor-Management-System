@@ -13,13 +13,7 @@ import { getStoredUser } from "../../services/authService";
 import TopNav from "../../components/nav/TopNav";
 import PasswordInput from "../../components/ui/PasswordInput";
 
-const TABS = [
-    { label: "Overview", to: "/admin" },
-    { label: "Residents", to: "/admin/residents" },
-    { label: "Units", to: "/admin/units" },
-    { label: "Reports", to: "/admin/reports" },
-    { label: "Settings", to: "/admin/settings" },
-];
+import { ADMIN_TABS as TABS } from "../../constants/navTabs";
 
 const fieldClass =
     "w-full bg-surface-alt border border-border text-text rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary";

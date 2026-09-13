@@ -36,6 +36,7 @@ class AdminAuditLogController extends Controller
             'user_role' => ['sometimes', 'in:resident,guard,admin'],
             'result' => ['sometimes', 'in:success,failure'],
             'security_only' => ['sometimes', 'boolean'],
+            'page' => ['sometimes', 'integer', 'min:1'],
         ]);
 
         $query = AuditLog::with('user');
@@ -90,9 +91,11 @@ class AdminAuditLogController extends Controller
             });
         }
 
+        // Paginated: this table grows on every login, scan, and admin
+        // action, so an unbounded ->get() would only get slower over time.
         $logs = $query
             ->orderByDesc('created_at')
-            ->get();
+            ->paginate(50);
 
         return response()->json([
             'logs' => $logs,

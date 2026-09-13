@@ -2,14 +2,9 @@ import { useEffect, useState } from "react";
 
 import { getUnits, createUnit, updateUnit, deleteUnit } from "../../services/adminService";
 import TopNav from "../../components/nav/TopNav";
+import SubTabButton from "../../components/ui/SubTabButton";
 
-const TABS = [
-    { label: "Overview", to: "/admin" },
-    { label: "Residents", to: "/admin/residents" },
-    { label: "Units", to: "/admin/units" },
-    { label: "Reports", to: "/admin/reports" },
-    { label: "Settings", to: "/admin/settings" },
-];
+import { ADMIN_TABS as TABS } from "../../constants/navTabs";
 
 const fieldClass =
     "w-full bg-surface-alt border border-border text-text rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary";
@@ -19,19 +14,6 @@ const STATUS_CLASS = {
     pending: "text-warning",
     inactive: "text-danger",
 };
-
-function SubTabButton({ active, onClick, children }) {
-    return (
-        <button
-            onClick={onClick}
-            className={`shrink-0 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                active ? "bg-primary text-white" : "bg-surface-alt text-text-muted border border-border"
-            }`}
-        >
-            {children}
-        </button>
-    );
-}
 
 function AdminUnits() {
     const [subTab, setSubTab] = useState("manage");

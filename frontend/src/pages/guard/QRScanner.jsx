@@ -4,10 +4,7 @@ import { verifyQR } from "../../services/guardService";
 import VisitorVerification from "./VisitorVerification";
 import TopNav from "../../components/nav/TopNav";
 
-const TABS = [
-    { label: "Scan", to: "/guard/scan" },
-    { label: "Log", to: "/guard/log" },
-];
+import { GUARD_TABS as TABS } from "../../constants/navTabs";
 
 export default function QRScanner() {
 
@@ -33,6 +30,14 @@ export default function QRScanner() {
         );
 
         scannerRef.current = scanner;
+
+        // start() is async — in React StrictMode's dev-only double-invoke,
+        // the cleanup below can otherwise run before start() has actually
+        // attached a stream (isScanning still false), leaving the first
+        // camera instance orphaned while a second one starts against the
+        // same DOM node. Tracking the in-flight promise lets cleanup wait
+        // for start() to settle before deciding whether to stop it.
+        let startPromise;
 
         const startScanner = async () => {
 
@@ -91,20 +96,25 @@ export default function QRScanner() {
             }
         };
 
-        startScanner();
+        startPromise = startScanner();
 
-        // Cleanup when leaving page
+        // Cleanup when leaving page — wait for the in-flight start() to
+        // settle (success or failure) before attempting to stop, so we
+        // never call stop() on a scanner that's still mid-initialization.
         return () => {
 
-            if (
-                scannerRef.current &&
-                scannerRef.current.isScanning
-            ) {
-
-                scannerRef.current
-                    .stop()
-                    .catch(() => {});
-            }
+            startPromise
+                .catch(() => {})
+                .finally(() => {
+                    if (
+                        scannerRef.current &&
+                        scannerRef.current.isScanning
+                    ) {
+                        scannerRef.current
+                            .stop()
+                            .catch(() => {});
+                    }
+                });
 
         };
 

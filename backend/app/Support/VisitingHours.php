@@ -12,8 +12,8 @@ class VisitingHours
     public static function bounds(): array
     {
         return [
-            SystemSetting::where('key', 'visiting_start')->value('value') ?? '08:00',
-            SystemSetting::where('key', 'visiting_end')->value('value') ?? '22:00',
+            SystemSetting::get('visiting_start', '08:00'),
+            SystemSetting::get('visiting_end', '22:00'),
         ];
     }
 

@@ -30,10 +30,12 @@ class AdminDashboardController extends Controller
             ];
         }
 
+        // Computed in SQL rather than pulling every checked-in/out row into
+        // PHP just to average two timestamps.
         $avgVisitMinutes = Visitor::whereNotNull('checked_in_at')
             ->whereNotNull('checked_out_at')
-            ->get(['checked_in_at', 'checked_out_at'])
-            ->avg(fn ($v) => $v->checked_in_at->diffInMinutes($v->checked_out_at));
+            ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, checked_in_at, checked_out_at)) as avg_minutes')
+            ->value('avg_minutes');
 
         // One grouped query for per-status counts, instead of 7 separate queries
         $statusCounts = Visitor::selectRaw('status, COUNT(*) as total')

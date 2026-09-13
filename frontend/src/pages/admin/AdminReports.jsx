@@ -1,17 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { getAdminVisitors, getAuditLogs, getUsers } from "../../services/adminService";
 import TopNav from "../../components/nav/TopNav";
 import StatusPill from "../../components/ui/StatusPill";
+import SubTabButton from "../../components/ui/SubTabButton";
 import { QR_STATUS_STYLES, QR_STATUS_LABELS } from "../../constants/qrStatus";
 
-const TABS = [
-    { label: "Overview", to: "/admin" },
-    { label: "Residents", to: "/admin/residents" },
-    { label: "Units", to: "/admin/units" },
-    { label: "Reports", to: "/admin/reports" },
-    { label: "Settings", to: "/admin/settings" },
-];
+import { ADMIN_TABS as TABS } from "../../constants/navTabs";
 
 const fieldClass =
     "w-full bg-surface-alt border border-border text-text rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary";
@@ -59,19 +54,6 @@ function AdminReports() {
     );
 }
 
-function SubTabButton({ active, onClick, children }) {
-    return (
-        <button
-            onClick={onClick}
-            className={`shrink-0 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                active ? "bg-primary text-white" : "bg-surface-alt text-text-muted border border-border"
-            }`}
-        >
-            {children}
-        </button>
-    );
-}
-
 function VisitorReport() {
     const [visitors, setVisitors] = useState([]);
     const [residents, setResidents] = useState([]);
@@ -87,8 +69,14 @@ function VisitorReport() {
     const [guardId, setGuardId] = useState("");
     const [from, setFrom] = useState("");
     const [to, setTo] = useState("");
+    const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
+    const [page, setPage] = useState(1);
 
-    const fetchVisitors = async () => {
+    // See AuditLogReport's identical guard for why this is needed.
+    const requestId = useRef(0);
+
+    const fetchVisitors = async (targetPage = 1) => {
+        const thisRequestId = ++requestId.current;
         setLoading(true);
         setError("");
 
@@ -101,18 +89,32 @@ function VisitorReport() {
                 guard_id: guardId || undefined,
                 from: from || undefined,
                 to: to || undefined,
+                page: targetPage,
             });
-            setVisitors(data.visitors);
+
+            if (thisRequestId !== requestId.current) return;
+
+            const paginated = data.visitors || {};
+            setVisitors(paginated.data || []);
+            setMeta({
+                current_page: paginated.current_page || 1,
+                last_page: paginated.last_page || 1,
+                total: paginated.total ?? (paginated.data || []).length,
+            });
+            setPage(targetPage);
         } catch (err) {
+            if (thisRequestId !== requestId.current) return;
             console.error(err);
             setError(err.response?.data?.message || "Failed to load visitors.");
         } finally {
-            setLoading(false);
+            if (thisRequestId === requestId.current) setLoading(false);
         }
     };
 
+    const goToPage = (nextPage) => fetchVisitors(nextPage);
+
     useEffect(() => {
-        fetchVisitors();
+        fetchVisitors(1);
 
         (async () => {
             try {
@@ -203,7 +205,7 @@ function VisitorReport() {
                     </select>
 
                     <button
-                        onClick={fetchVisitors}
+                        onClick={() => fetchVisitors(1)}
                         className="shrink-0 bg-surface-alt border border-border text-text text-sm font-semibold px-3.5 rounded-lg hover:bg-white/5 transition-colors"
                     >
                         Go
@@ -304,6 +306,28 @@ function VisitorReport() {
                     </>
                 )}
             </div>
+
+            {meta.last_page > 1 && (
+                <div className="flex items-center justify-between mt-3">
+                    <button
+                        onClick={() => goToPage(page - 1)}
+                        disabled={page <= 1}
+                        className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-surface-alt border border-border text-text disabled:opacity-40"
+                    >
+                        Previous
+                    </button>
+                    <span className="text-xs text-text-muted">
+                        Page {meta.current_page} of {meta.last_page} ({meta.total} total)
+                    </span>
+                    <button
+                        onClick={() => goToPage(page + 1)}
+                        disabled={page >= meta.last_page}
+                        className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-surface-alt border border-border text-text disabled:opacity-40"
+                    >
+                        Next
+                    </button>
+                </div>
+            )}
         </>
     );
 }
@@ -318,11 +342,8 @@ function FailedScans() {
             setLoading(true);
             setError("");
             try {
-                const data = await getAuditLogs({ action: "verify_qr" });
-                const failedOnly = (data.logs || []).filter((log) =>
-                    log.description?.startsWith("QR verification failed")
-                );
-                setAttempts(failedOnly);
+                const data = await getAuditLogs({ action: "verify_qr", result: "failure" });
+                setAttempts(data.logs?.data || []);
             } catch (err) {
                 console.error(err);
                 setError(err.response?.data?.message || "Unable to load failed verification attempts.");
@@ -402,6 +423,8 @@ const AUDIT_ACTION_OPTIONS = [
 
 function AuditLogReport() {
     const [logs, setLogs] = useState([]);
+    const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
+    const [page, setPage] = useState(1);
     const [search, setSearch] = useState("");
     const [action, setAction] = useState("");
     const [userRole, setUserRole] = useState("");
@@ -411,7 +434,14 @@ function AuditLogReport() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    const fetchLogs = async () => {
+    // Guards against out-of-order responses: if a newer fetch has started
+    // by the time an older one resolves (rapid filter changes, or React
+    // StrictMode's dev-only double-invoke), the stale response is dropped
+    // instead of overwriting newer state.
+    const requestId = useRef(0);
+
+    const fetchLogs = async (targetPage = 1) => {
+        const thisRequestId = ++requestId.current;
         setLoading(true);
         setError("");
 
@@ -423,18 +453,32 @@ function AuditLogReport() {
                 result: result || undefined,
                 date: date || undefined,
                 security_only: securityOnly || undefined,
+                page: targetPage,
             });
-            setLogs(data.logs);
+
+            if (thisRequestId !== requestId.current) return;
+
+            const paginated = data.logs || {};
+            setLogs(paginated.data || []);
+            setMeta({
+                current_page: paginated.current_page || 1,
+                last_page: paginated.last_page || 1,
+                total: paginated.total ?? (paginated.data || []).length,
+            });
+            setPage(targetPage);
         } catch (err) {
+            if (thisRequestId !== requestId.current) return;
             console.error(err);
             setError(err.response?.data?.message || "Failed to load audit logs.");
         } finally {
-            setLoading(false);
+            if (thisRequestId === requestId.current) setLoading(false);
         }
     };
 
+    const goToPage = (nextPage) => fetchLogs(nextPage);
+
     useEffect(() => {
-        fetchLogs();
+        fetchLogs(1);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [securityOnly]);
 
@@ -451,7 +495,7 @@ function AuditLogReport() {
                     />
 
                     <button
-                        onClick={fetchLogs}
+                        onClick={() => fetchLogs(1)}
                         className="shrink-0 bg-surface-alt border border-border text-text text-sm font-semibold px-3.5 rounded-lg hover:bg-white/5 transition-colors"
                     >
                         Go
@@ -557,6 +601,28 @@ function AuditLogReport() {
                     ))
                 )}
             </div>
+
+            {meta.last_page > 1 && (
+                <div className="flex items-center justify-between mt-3">
+                    <button
+                        onClick={() => goToPage(page - 1)}
+                        disabled={page <= 1}
+                        className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-surface-alt border border-border text-text disabled:opacity-40"
+                    >
+                        Previous
+                    </button>
+                    <span className="text-xs text-text-muted">
+                        Page {meta.current_page} of {meta.last_page} ({meta.total} total)
+                    </span>
+                    <button
+                        onClick={() => goToPage(page + 1)}
+                        disabled={page >= meta.last_page}
+                        className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-surface-alt border border-border text-text disabled:opacity-40"
+                    >
+                        Next
+                    </button>
+                </div>
+            )}
         </>
     );
 }

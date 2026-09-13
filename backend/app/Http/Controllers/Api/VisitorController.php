@@ -30,7 +30,7 @@ class VisitorController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255',],
-            'phone' => ['required', 'string', 'max:30',],
+            'phone' => ['required', 'string', 'max:30', 'regex:/^[0-9+\-\s()]+$/',],
             'purpose' => ['required', 'string', 'max:255',],
             'expected_at' => ['required', 'date', 'after:now', function ($attribute, $value, $fail) { $this->assertWithinVisitingHours($attribute, $value, $fail); }, function ($attribute, $value, $fail) { $this->assertWithinAdvanceBookingWindow($attribute, $value, $fail); },],
         ]);
@@ -106,7 +106,7 @@ class VisitorController extends Controller
         $this->authorize('update', $visitor);
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255',],
-            'phone' => ['required', 'string', 'max:30',],
+            'phone' => ['required', 'string', 'max:30', 'regex:/^[0-9+\-\s()]+$/',],
             'purpose' => ['required', 'string', 'max:255',],
             'expected_at' => ['required', 'date', 'after:now', function ($attribute, $value, $fail) { $this->assertWithinVisitingHours($attribute, $value, $fail); }, function ($attribute, $value, $fail) { $this->assertWithinAdvanceBookingWindow($attribute, $value, $fail); },],
         ]);
@@ -328,10 +328,7 @@ class VisitorController extends Controller
     // Configured QR expiry duration, falling back to 24 hours
     private function qrExpiryHours(): int
     {
-        $hours = (int) SystemSetting::where(
-            'key',
-            'qr_expiry_hours'
-        )->value('value');
+        $hours = (int) SystemSetting::get('qr_expiry_hours');
 
         return $hours > 0 ? $hours : 24;
     }
@@ -351,10 +348,7 @@ class VisitorController extends Controller
     // Configured advance-booking window, falling back to 30 days
     private function maxAdvanceBookingDays(): int
     {
-        $days = (int) SystemSetting::where(
-            'key',
-            'max_advance_booking_days'
-        )->value('value');
+        $days = (int) SystemSetting::get('max_advance_booking_days');
 
         return $days > 0 ? $days : 30;
     }
@@ -362,10 +356,7 @@ class VisitorController extends Controller
     // Configured cap on visitors per resident per day, falling back to 10
     private function maxVisitorsPerDay(): int
     {
-        $max = (int) SystemSetting::where(
-            'key',
-            'max_visitors_per_day'
-        )->value('value');
+        $max = (int) SystemSetting::get('max_visitors_per_day');
 
         return $max > 0 ? $max : 10;
     }

@@ -3,13 +3,7 @@ import { useEffect, useState } from "react";
 import { getSettings, updateSettings } from "../../services/adminService";
 import TopNav from "../../components/nav/TopNav";
 
-const TABS = [
-    { label: "Overview", to: "/admin" },
-    { label: "Residents", to: "/admin/residents" },
-    { label: "Units", to: "/admin/units" },
-    { label: "Reports", to: "/admin/reports" },
-    { label: "Settings", to: "/admin/settings" },
-];
+import { ADMIN_TABS as TABS } from "../../constants/navTabs";
 
 const fieldClass =
     "w-full bg-surface-alt border border-border text-text rounded-lg px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary";
@@ -28,12 +22,16 @@ function AdminSettings() {
 
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         fetchSettings();
     }, []);
 
     const fetchSettings = async () => {
+
+        setLoading(true);
 
         try {
 
@@ -47,6 +45,10 @@ function AdminSettings() {
                 "Failed to load settings."
             );
 
+        } finally {
+
+            setLoading(false);
+
         }
     };
 
@@ -56,6 +58,7 @@ function AdminSettings() {
 
         setMessage("");
         setError("");
+        setSaving(true);
 
         try {
 
@@ -71,6 +74,10 @@ function AdminSettings() {
                 error.response?.data?.message ||
                 "Failed to save settings."
             );
+
+        } finally {
+
+            setSaving(false);
 
         }
     };
@@ -98,6 +105,11 @@ function AdminSettings() {
                     </div>
                 )}
 
+                {loading ? (
+                    <div className="bg-surface border border-border rounded-2xl p-8 text-center text-text-muted text-sm">
+                        Loading settings...
+                    </div>
+                ) : (
                 <form
                     onSubmit={saveSettings}
                     className="bg-surface border border-border rounded-2xl p-5 space-y-5"
@@ -218,12 +230,14 @@ function AdminSettings() {
 
                     <button
                         type="submit"
-                        className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 rounded-lg transition-colors"
+                        disabled={saving}
+                        className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50"
                     >
-                        Save Settings
+                        {saving ? "Saving..." : "Save Settings"}
                     </button>
 
                 </form>
+                )}
 
             </div>
 

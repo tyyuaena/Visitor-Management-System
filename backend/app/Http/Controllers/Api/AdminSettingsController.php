@@ -70,6 +70,10 @@ class AdminSettingsController extends Controller
             );
         }
 
+        // Invalidate the request-lifetime settings cache so anything reading
+        // settings later in this same request sees the new values.
+        SystemSetting::forgetCache();
+
         // Record audit log
         AuditLog::record(
             request: $request,

@@ -44,9 +44,10 @@ export const checkoutVisitor = async (
 };
 
 // Visitor logs
-export const getVisitorLogs = async () => {
+export const getVisitorLogs = async (filters = {}) => {
     const response = await api.get(
-        "/guard/visitor-logs"
+        "/guard/visitor-logs",
+        { params: filters }
     );
     return response.data;
 };

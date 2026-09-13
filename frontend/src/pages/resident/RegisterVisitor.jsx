@@ -4,10 +4,7 @@ import { registerVisitor } from "../../services/visitorService";
 import { getStoredUser } from "../../services/authService";
 import TopNav from "../../components/nav/TopNav";
 
-const TABS = [
-    { label: "Register", to: "/resident/register" },
-    { label: "History", to: "/resident/history" },
-];
+import { RESIDENT_TABS as TABS } from "../../constants/navTabs";
 
 const fieldClass =
     "w-full bg-surface-alt border border-border text-text rounded-lg px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary";

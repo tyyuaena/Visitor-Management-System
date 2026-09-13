@@ -3,13 +3,7 @@ import { useEffect, useState } from "react";
 import { getDashboardStats } from "../../services/adminService";
 import TopNav from "../../components/nav/TopNav";
 
-const TABS = [
-    { label: "Overview", to: "/admin" },
-    { label: "Residents", to: "/admin/residents" },
-    { label: "Units", to: "/admin/units" },
-    { label: "Reports", to: "/admin/reports" },
-    { label: "Settings", to: "/admin/settings" },
-];
+import { ADMIN_TABS as TABS } from "../../constants/navTabs";
 
 const BAR_COLORS = ["bg-primary", "bg-cyan"];
 
