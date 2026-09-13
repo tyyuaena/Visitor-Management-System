@@ -57,13 +57,6 @@ function AdminUsers() {
         status: "active",
     });
 
-    useEffect(() => {
-        fetchUsers();
-        getUnits()
-            .then((data) => setUnits(data.units))
-            .catch((err) => console.error(err));
-    }, []);
-
     const fetchUsers = async () => {
 
         setLoading(true);
@@ -94,6 +87,15 @@ function AdminUsers() {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        fetchUsers();
+        getUnits()
+            .then((data) => setUnits(data.units))
+            .catch((err) => console.error(err));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleCreate = async (e) => {
 

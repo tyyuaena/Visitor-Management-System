@@ -17,6 +17,47 @@ export default function QRScanner() {
     const [manualToken, setManualToken] = useState("");
     const [manualLoading, setManualLoading] = useState(false);
 
+    // Handle QR value
+    const handleQRCode = async (
+        qrValue
+    ) => {
+
+        setError("");
+
+        try {
+
+            const response =
+                await verifyQR(qrValue);
+
+            if (response.valid) {
+
+                setVisitor(
+                    response.visitor
+                );
+
+                setScanning(false);
+
+            } else {
+
+                setError(
+                    response.message ||
+                    "Invalid QR code."
+                );
+            }
+
+        } catch (err) {
+
+            console.error(err);
+
+            setError(
+                err.response?.data?.message ||
+                "QR verification failed."
+            );
+
+            setScanning(false);
+        }
+    };
+
     // Start camera — only once the guard explicitly opts in, rather than
     // requesting camera access the instant this page loads.
     useEffect(() => {
@@ -119,47 +160,6 @@ export default function QRScanner() {
         };
 
     }, [cameraStarted, scanning, visitor]);
-
-    // Handle QR value
-    const handleQRCode = async (
-        qrValue
-    ) => {
-
-        setError("");
-
-        try {
-
-            const response =
-                await verifyQR(qrValue);
-
-            if (response.valid) {
-
-                setVisitor(
-                    response.visitor
-                );
-
-                setScanning(false);
-
-            } else {
-
-                setError(
-                    response.message ||
-                    "Invalid QR code."
-                );
-            }
-
-        } catch (err) {
-
-            console.error(err);
-
-            setError(
-                err.response?.data?.message ||
-                "QR verification failed."
-            );
-
-            setScanning(false);
-        }
-    };
 
     // Manual QR token verification
     const handleManualVerification =

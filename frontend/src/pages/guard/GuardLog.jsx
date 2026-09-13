@@ -118,6 +118,7 @@ function VisitorLog() {
     // Status/date changes and pagination apply immediately; free-text search
     // is debounced so it doesn't fire a request on every keystroke.
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadLogs(1);
         setPage(1);
         // eslint-disable-next-line react-hooks/exhaustive-deps

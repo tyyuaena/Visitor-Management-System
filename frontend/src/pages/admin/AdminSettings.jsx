@@ -25,10 +25,6 @@ function AdminSettings() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
-    useEffect(() => {
-        fetchSettings();
-    }, []);
-
     const fetchSettings = async () => {
 
         setLoading(true);
@@ -51,6 +47,11 @@ function AdminSettings() {
 
         }
     };
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        fetchSettings();
+    }, []);
 
     const saveSettings = async (e) => {
 

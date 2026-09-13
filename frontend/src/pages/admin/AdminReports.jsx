@@ -114,6 +114,7 @@ function VisitorReport() {
     const goToPage = (nextPage) => fetchVisitors(nextPage);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchVisitors(1);
 
         (async () => {
@@ -128,6 +129,7 @@ function VisitorReport() {
                 console.error("Failed to load filter options:", err);
             }
         })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (
@@ -478,6 +480,7 @@ function AuditLogReport() {
     const goToPage = (nextPage) => fetchLogs(nextPage);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchLogs(1);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [securityOnly]);

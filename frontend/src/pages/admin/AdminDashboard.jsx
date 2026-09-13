@@ -13,10 +13,6 @@ function AdminDashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    useEffect(() => {
-        fetchDashboard();
-    }, []);
-
     const fetchDashboard = async () => {
         try {
             const data = await getDashboardStats();
@@ -31,6 +27,11 @@ function AdminDashboard() {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        fetchDashboard();
+    }, []);
 
     const weeklyVolume = statistics?.weekly_volume || [];
     const maxCount = Math.max(1, ...weeklyVolume.map((d) => d.count));

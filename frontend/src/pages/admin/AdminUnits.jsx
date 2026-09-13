@@ -22,10 +22,6 @@ function AdminUnits() {
     const [error, setError] = useState("");
     const [message, setMessage] = useState("");
 
-    useEffect(() => {
-        fetchUnits();
-    }, []);
-
     const fetchUnits = async () => {
         setLoading(true);
         setError("");
@@ -40,6 +36,11 @@ function AdminUnits() {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        fetchUnits();
+    }, []);
 
     return (
         <div className="min-h-screen bg-bg">
