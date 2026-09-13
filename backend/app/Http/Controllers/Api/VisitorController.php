@@ -32,7 +32,13 @@ class VisitorController extends Controller
             'name' => ['required', 'string', 'max:255',],
             'phone' => ['required', 'string', 'max:30', 'regex:/^[0-9+\-\s()]+$/',],
             'purpose' => ['required', 'string', 'max:255',],
-            'expected_at' => ['required', 'date', 'after:now', function ($attribute, $value, $fail) { $this->assertWithinVisitingHours($attribute, $value, $fail); }, function ($attribute, $value, $fail) { $this->assertWithinAdvanceBookingWindow($attribute, $value, $fail); },],
+            // "bail" is required here: without it, Laravel still runs the
+            // custom closures below even after "date" has already failed,
+            // and Carbon::parse() on a genuinely unparseable string (e.g.
+            // "not-a-date") throws an uncaught exception instead of the
+            // closure calling $fail() — bail stops at the first failing
+            // rule per field, so the closures never see an invalid value.
+            'expected_at' => ['bail', 'required', 'date', 'after:now', function ($attribute, $value, $fail) { $this->assertWithinVisitingHours($attribute, $value, $fail); }, function ($attribute, $value, $fail) { $this->assertWithinAdvanceBookingWindow($attribute, $value, $fail); },],
         ]);
 
         // Admin-configured cap on how many visitors a resident may register
@@ -108,7 +114,13 @@ class VisitorController extends Controller
             'name' => ['required', 'string', 'max:255',],
             'phone' => ['required', 'string', 'max:30', 'regex:/^[0-9+\-\s()]+$/',],
             'purpose' => ['required', 'string', 'max:255',],
-            'expected_at' => ['required', 'date', 'after:now', function ($attribute, $value, $fail) { $this->assertWithinVisitingHours($attribute, $value, $fail); }, function ($attribute, $value, $fail) { $this->assertWithinAdvanceBookingWindow($attribute, $value, $fail); },],
+            // "bail" is required here: without it, Laravel still runs the
+            // custom closures below even after "date" has already failed,
+            // and Carbon::parse() on a genuinely unparseable string (e.g.
+            // "not-a-date") throws an uncaught exception instead of the
+            // closure calling $fail() — bail stops at the first failing
+            // rule per field, so the closures never see an invalid value.
+            'expected_at' => ['bail', 'required', 'date', 'after:now', function ($attribute, $value, $fail) { $this->assertWithinVisitingHours($attribute, $value, $fail); }, function ($attribute, $value, $fail) { $this->assertWithinAdvanceBookingWindow($attribute, $value, $fail); },],
         ]);
 
         // Re-check the per-day cap only if the visit is moving to a
