@@ -1,0 +1,10 @@
+# composer.json hard-requires ext-gd (simplesoftwareio/simple-qrcode's own
+# composer.json lists "ext-gd" under "require", not "suggest" — the QR
+# package underneath uses it even though this app only requests SVG
+# output). If gd isn't present when `composer install` runs on the
+# instance, Composer refuses to install the package and the deployment
+# fails outright. The base EB PHP/AL2023 platform does not guarantee gd is
+# preinstalled, so it's requested explicitly here.
+packages:
+  yum:
+    php-gd: []

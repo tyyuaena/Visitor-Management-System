@@ -3,6 +3,13 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\Api\HealthController;
+
+// Public health check for the EB load balancer / uptime monitoring — no
+// auth required, no sensitive data returned. See HealthController for why
+// it always returns HTTP 200 even when the database is unreachable.
+Route::get('/health', [HealthController::class, 'index']);
+
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
