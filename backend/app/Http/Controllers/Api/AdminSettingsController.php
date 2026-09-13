@@ -13,28 +13,16 @@ class AdminSettingsController extends Controller
     // Display system settings
     public function index(): JsonResponse
     {
-        $settings = SystemSetting::pluck(
-            'value',
-            'key'
-        );
-
-        // Provide default values if settings do not exist yet
+        // Same request-lifetime-cached lookup the rest of the app uses
+        // (VisitorController, VisitingHours) — provides the same defaults
+        // if settings do not exist yet.
         return response()->json([
             'settings' => [
-                'qr_expiry_hours' =>
-                    $settings['qr_expiry_hours'] ?? 24,
-
-                'visiting_start' =>
-                    $settings['visiting_start'] ?? '08:00',
-
-                'visiting_end' =>
-                    $settings['visiting_end'] ?? '22:00',
-
-                'max_advance_booking_days' =>
-                    $settings['max_advance_booking_days'] ?? 30,
-
-                'max_visitors_per_day' =>
-                    $settings['max_visitors_per_day'] ?? 10,
+                'qr_expiry_hours' => (int) SystemSetting::get('qr_expiry_hours', 24),
+                'visiting_start' => SystemSetting::get('visiting_start', '08:00'),
+                'visiting_end' => SystemSetting::get('visiting_end', '22:00'),
+                'max_advance_booking_days' => (int) SystemSetting::get('max_advance_booking_days', 30),
+                'max_visitors_per_day' => (int) SystemSetting::get('max_visitors_per_day', 10),
             ],
         ]);
     }

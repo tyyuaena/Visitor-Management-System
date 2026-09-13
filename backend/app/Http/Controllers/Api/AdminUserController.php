@@ -6,12 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Support\AccountToken;
+use App\Support\PasswordPolicy;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
 class AdminUserController extends Controller
@@ -106,7 +106,7 @@ class AdminUserController extends Controller
             $validated = $request->validate([
                 'name' => ['required', 'string', 'max:255',],
                 'email' => ['required', 'email', 'max:255', 'unique:users,email',],
-                'password' => ['required', 'string', Password::min(8)->mixedCase()->numbers(),],
+                'password' => ['required', 'string', PasswordPolicy::rule(),],
                 'role' => ['required', 'in:guard',],
             ]);
 

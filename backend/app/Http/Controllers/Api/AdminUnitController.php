@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Unit;
+use App\Models\User;
+use App\Models\Visitor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class AdminUnitController extends Controller
@@ -66,12 +69,17 @@ class AdminUnitController extends Controller
 
         $oldCode = $unit->code;
 
-        if ($oldCode !== $validated['code']) {
-            \App\Models\User::where('unit', $oldCode)->update(['unit' => $validated['code']]);
-            \App\Models\Visitor::where('unit', $oldCode)->update(['unit' => $validated['code']]);
-        }
+        // The rename itself and both cascaded column updates must all
+        // succeed together — if a later step failed after an earlier one
+        // committed, users/visitors/units would disagree on the unit code.
+        DB::transaction(function () use ($unit, $oldCode, $validated) {
+            if ($oldCode !== $validated['code']) {
+                User::where('unit', $oldCode)->update(['unit' => $validated['code']]);
+                Visitor::where('unit', $oldCode)->update(['unit' => $validated['code']]);
+            }
 
-        $unit->update($validated);
+            $unit->update($validated);
+        });
 
         AuditLog::record(
             request: $request,

@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\HealthController;
@@ -9,10 +8,6 @@ use App\Http\Controllers\Api\HealthController;
 // auth required, no sensitive data returned. See HealthController for why
 // it always returns HTTP 200 even when the database is unreachable.
 Route::get('/health', [HealthController::class, 'index']);
-
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
 
 
 use App\Http\Controllers\Api\AuthController;
@@ -33,31 +28,6 @@ Route::prefix('auth')->group(function () {
         Route::post('/change-password', [AuthController::class, 'changePassword']);
     });
 });
-
-Route::middleware(['auth:sanctum', 'role:resident'])
-    ->get('/resident-test', function (Request $request) {
-        return response()->json([
-            'message' => 'Resident access granted.',
-            'user' => $request->user(),
-        ]);
-    });
-
-Route::middleware(['auth:sanctum', 'role:guard'])
-    ->get('/guard-test', function (Request $request) {
-        return response()->json([
-            'message' => 'Guard access granted.',
-            'user' => $request->user(),
-        ]);
-    });
-
-Route::middleware(['auth:sanctum', 'role:admin'])
-    ->get('/admin-test', function (Request $request) {
-        return response()->json([
-            'message' => 'Administrator access granted.',
-            'user' => $request->user(),
-        ]);
-    });
-
 
 use App\Http\Controllers\Api\VisitorController;
 
