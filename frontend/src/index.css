@@ -26,7 +26,7 @@
 html {
     background-color: var(--color-bg);
     /* Bumps every rem-based Tailwind text/spacing size app-wide (default is 16px) */
-    font-size: 24px;
+    font-size: 18px;
 }
 
 body {
