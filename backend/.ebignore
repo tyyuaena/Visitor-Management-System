@@ -1,0 +1,29 @@
+# Presence of this file switches `eb deploy` from `git archive` (git-tracked
+# files only) to a full directory zip filtered by these patterns. That's
+# required here: the built frontend SPA is copied into public/ by
+# bin/build-frontend.sh before every deploy and is gitignored (never
+# committed), so git archive alone would silently ship an app with no
+# frontend.
+.git
+.gitignore
+.gitattributes
+.env
+.env.example
+.env.backup
+.env.production
+.ebignore
+tests
+phpunit.xml
+README.md
+AGENTS.md
+CLAUDE.md
+.phpunit.cache
+.phpunit.result.cache
+vendor
+node_modules
+.idea
+.vscode
+.zed
+.nova
+.cursor
+.codex

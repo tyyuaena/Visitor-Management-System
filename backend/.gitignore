@@ -18,6 +18,13 @@
 /public/fonts-manifest.dev.json
 /public/hot
 /public/storage
+
+# Built React SPA, copied into public/ by bin/build-frontend.sh right
+# before deploying — generated from /frontend, never committed here.
+/public/assets
+/public/index.html
+/public/favicon.svg
+/public/icons.svg
 /storage/*.key
 /storage/pail
 /vendor
