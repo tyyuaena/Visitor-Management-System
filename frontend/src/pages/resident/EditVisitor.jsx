@@ -10,6 +10,23 @@ const fieldClass =
 const labelClass =
     "block mb-1.5 text-xs font-semibold uppercase tracking-wide text-text-muted";
 
+// Kept in sync with RegisterVisitor's list — same field, same backend
+// column, so the edit form should offer the same choices.
+const PURPOSE_OPTIONS = [
+    "Guest Visit",
+    "Delivery",
+    "Food Delivery",
+    "Service Provider",
+    "Maintenance / Repair",
+    "Ride-Hailing Pickup/Drop-off",
+    "Moving In/Out",
+    "Other",
+];
+
+// Matches the backend's own validation exactly (VisitorController@update:
+// 'regex:/^[0-9+\-\s()]+$/').
+const PHONE_PATTERN = /^[0-9+\-\s()]+$/;
+
 export default function EditVisitor() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -17,11 +34,14 @@ export default function EditVisitor() {
         name: "",
         phone: "",
         purpose: "",
+        purposeOther: "",
         expected_at: "",
     });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
+
+    const phoneInvalid = form.phone.length > 0 && !PHONE_PATTERN.test(form.phone);
 
     // Load visitor information
     useEffect(() => {
@@ -42,10 +62,18 @@ export default function EditVisitor() {
                     expectedAt = `${year}-${month}-${day}T${hours}:${minutes}`;
                 }
 
+                // An existing visitor's purpose was free-typed before this
+                // dropdown existed (or is a custom "Other" value) — if it
+                // doesn't match one of the fixed options, select "Other"
+                // and preload its own text into the custom field so the
+                // value isn't silently lost or misrepresented.
+                const knownPurpose = PURPOSE_OPTIONS.includes(visitor.purpose);
+
                 setForm({
                     name: visitor.name || "",
                     phone: visitor.phone || "",
-                    purpose: visitor.purpose || "",
+                    purpose: knownPurpose ? visitor.purpose : "Other",
+                    purposeOther: knownPurpose ? "" : (visitor.purpose || ""),
                     expected_at: expectedAt,
                 });
 
@@ -74,10 +102,29 @@ export default function EditVisitor() {
     const handleSubmit = async (event) => {
         event.preventDefault();
         setError("");
+
+        if (phoneInvalid) {
+            setError("Please enter a valid phone number.");
+            return;
+        }
+
+        const purpose =
+            form.purpose === "Other" ? form.purposeOther.trim() : form.purpose;
+
+        if (form.purpose === "Other" && !purpose) {
+            setError("Please specify the purpose of visit.");
+            return;
+        }
+
         setSaving(true);
 
         try {
-            await updateVisitor(id, form);
+            await updateVisitor(id, {
+                name: form.name,
+                phone: form.phone,
+                purpose,
+                expected_at: form.expected_at,
+            });
             navigate("/resident/history");
 
         } catch (error) {
@@ -143,6 +190,7 @@ export default function EditVisitor() {
                                 value={form.name}
                                 onChange={handleChange}
                                 className={fieldClass}
+                                placeholder="e.g. John Tan"
                                 required
                             />
                         </div>
@@ -150,26 +198,51 @@ export default function EditVisitor() {
                         <div>
                             <label className={labelClass}>Phone</label>
                             <input
-                                type="text"
+                                type="tel"
+                                inputMode="tel"
                                 name="phone"
                                 value={form.phone}
                                 onChange={handleChange}
                                 className={fieldClass}
+                                placeholder="e.g. 012-345 6789"
                                 required
                             />
+                            {phoneInvalid && (
+                                <p className="mt-1.5 text-xs text-danger">
+                                    Only numbers, spaces, and + - ( ) are allowed.
+                                </p>
+                            )}
                         </div>
                     </div>
 
                     <div>
                         <label className={labelClass}>Purpose</label>
-                        <input
-                            type="text"
+                        <select
                             name="purpose"
                             value={form.purpose}
                             onChange={handleChange}
                             className={fieldClass}
                             required
-                        />
+                        >
+                            <option value="" disabled>Select a purpose...</option>
+                            {PURPOSE_OPTIONS.map((option) => (
+                                <option key={option} value={option}>
+                                    {option}
+                                </option>
+                            ))}
+                        </select>
+
+                        {form.purpose === "Other" && (
+                            <input
+                                type="text"
+                                name="purposeOther"
+                                value={form.purposeOther}
+                                onChange={handleChange}
+                                className={`${fieldClass} mt-2`}
+                                placeholder="Please specify..."
+                                required
+                            />
+                        )}
                     </div>
 
                     <div>
@@ -187,7 +260,7 @@ export default function EditVisitor() {
                     <div className="flex gap-3 pt-2">
                         <button
                             type="submit"
-                            disabled={saving}
+                            disabled={saving || phoneInvalid}
                             className="flex-1 bg-primary hover:bg-primary-dark text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50"
                         >
                             {saving ? "Saving..." : "Save Changes"}

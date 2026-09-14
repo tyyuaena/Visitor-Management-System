@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import ProtectedRoute from "./components/ProtectedRoute";
+import { DialogProvider } from "./context/DialogContext";
 import { getStoredUser, dashboardPathForRole } from "./services/authService";
 
 // Login is kept as a static import — it's the page nearly every visitor
@@ -64,6 +65,7 @@ function RouteFallback() {
 
 function App() {
     return (
+        <DialogProvider>
         <BrowserRouter>
             <Suspense fallback={<RouteFallback />}>
             <Routes>
@@ -186,6 +188,7 @@ function App() {
             </Routes>
             </Suspense>
         </BrowserRouter>
+        </DialogProvider>
     );
 }
 

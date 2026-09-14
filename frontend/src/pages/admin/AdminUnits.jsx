@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { getUnits, createUnit, updateUnit, deleteUnit } from "../../services/adminService";
+import { useDialog } from "../../context/useDialog";
 import TopNav from "../../components/nav/TopNav";
 import SubTabButton from "../../components/ui/SubTabButton";
 
@@ -93,6 +94,7 @@ function AdminUnits() {
 }
 
 function ManageUnits({ units, loading, onChanged, setMessage, setError }) {
+    const { confirm } = useDialog();
     const [showForm, setShowForm] = useState(false);
     const [form, setForm] = useState({ code: "", label: "" });
 
@@ -137,7 +139,7 @@ function ManageUnits({ units, loading, onChanged, setMessage, setError }) {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm("Remove this unit? This cannot be undone.")) {
+        if (!(await confirm("Remove this unit? This cannot be undone."))) {
             return;
         }
 

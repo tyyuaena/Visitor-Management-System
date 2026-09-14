@@ -4,6 +4,7 @@ import TopNav from "../../components/nav/TopNav";
 import StatusPill from "../../components/ui/StatusPill";
 import SubTabButton from "../../components/ui/SubTabButton";
 import { QR_STATUS_STYLES, QR_STATUS_LABELS } from "../../constants/qrStatus";
+import { useDialog } from "../../context/useDialog";
 
 import { GUARD_TABS as TABS } from "../../constants/navTabs";
 
@@ -63,6 +64,7 @@ export default function GuardLog() {
 }
 
 function VisitorLog() {
+    const { confirm } = useDialog();
     const [visitors, setVisitors] = useState([]);
     const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
     const [loading, setLoading] = useState(true);
@@ -139,7 +141,7 @@ function VisitorLog() {
     };
 
     const handleCheckout = async (visitorId) => {
-        if (!window.confirm("Are you sure this visitor has left the premises?")) {
+        if (!(await confirm("Are you sure this visitor has left the premises?"))) {
             return;
         }
 

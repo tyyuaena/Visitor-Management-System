@@ -10,8 +10,10 @@ import {
     getUnits,
 } from "../../services/adminService";
 import { getStoredUser } from "../../services/authService";
+import { useDialog } from "../../context/useDialog";
 import TopNav from "../../components/nav/TopNav";
 import PasswordInput from "../../components/ui/PasswordInput";
+import PasswordRequirements from "../../components/ui/PasswordRequirements";
 
 import { ADMIN_TABS as TABS } from "../../constants/navTabs";
 
@@ -26,6 +28,7 @@ const STATUS_CLASS = {
 
 function AdminUsers() {
 
+    const { confirm } = useDialog();
     const currentUser = getStoredUser();
 
     const [users, setUsers] = useState([]);
@@ -143,9 +146,9 @@ function AdminUsers() {
     const handleDeactivate = async (id) => {
 
         if (
-            !window.confirm(
+            !(await confirm(
                 "Are you sure you want to deactivate this account?"
-            )
+            ))
         ) {
             return;
         }
@@ -190,9 +193,9 @@ function AdminUsers() {
     const handleResetPassword = async (id) => {
 
         if (
-            !window.confirm(
+            !(await confirm(
                 "Send this account a password reset email?"
-            )
+            ))
         ) {
             return;
         }
@@ -347,15 +350,20 @@ function AdminUsers() {
                         )}
 
                         {form.role === "guard" ? (
-                            <PasswordInput
-                                placeholder="Password"
-                                value={form.password}
-                                onChange={(e) =>
-                                    setForm({ ...form, password: e.target.value })
-                                }
-                                className={fieldClass}
-                                required
-                            />
+                            <div>
+                                <PasswordInput
+                                    placeholder="Password"
+                                    value={form.password}
+                                    onChange={(e) =>
+                                        setForm({ ...form, password: e.target.value })
+                                    }
+                                    className={fieldClass}
+                                    required
+                                />
+                                {form.password && (
+                                    <PasswordRequirements value={form.password} />
+                                )}
+                            </div>
                         ) : (
                             <p className="text-xs text-text-muted">
                                 No password needed — the account will receive an

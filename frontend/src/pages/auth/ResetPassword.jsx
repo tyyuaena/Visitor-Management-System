@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { resetPassword } from "../../services/authService";
 import PasswordInput from "../../components/ui/PasswordInput";
+import PasswordRequirements from "../../components/ui/PasswordRequirements";
 
 export default function ResetPassword() {
     const navigate = useNavigate();
@@ -13,6 +14,9 @@ export default function ResetPassword() {
     const [passwordConfirmation, setPasswordConfirmation] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+
+    const confirmMismatch =
+        passwordConfirmation.length > 0 && password !== passwordConfirmation;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -94,9 +98,11 @@ export default function ResetPassword() {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="w-full bg-surface-alt border border-border text-text rounded-lg px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                    placeholder="Enter a new password"
                                     minLength={8}
                                     required
                                 />
+                                {password && <PasswordRequirements value={password} />}
                             </div>
 
                             <div>
@@ -107,14 +113,20 @@ export default function ResetPassword() {
                                     value={passwordConfirmation}
                                     onChange={(e) => setPasswordConfirmation(e.target.value)}
                                     className="w-full bg-surface-alt border border-border text-text rounded-lg px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                    placeholder="Re-enter the new password"
                                     minLength={8}
                                     required
                                 />
+                                {confirmMismatch && (
+                                    <p className="mt-1.5 text-xs text-danger">
+                                        Passwords do not match.
+                                    </p>
+                                )}
                             </div>
 
                             <button
                                 type="submit"
-                                disabled={loading}
+                                disabled={loading || confirmMismatch}
                                 className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50"
                             >
                                 {loading ? "Saving..." : "Reset Password"}

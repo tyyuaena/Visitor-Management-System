@@ -5,11 +5,13 @@ import QRModal from "../../components/resident/QRModal";
 import TopNav from "../../components/nav/TopNav";
 import StatusPill from "../../components/ui/StatusPill";
 import { QR_STATUS_LABELS } from "../../constants/qrStatus";
+import { useDialog } from "../../context/useDialog";
 
 import { RESIDENT_TABS as TABS } from "../../constants/navTabs";
 
 export default function ResidentHistory() {
     const navigate = useNavigate();
+    const { confirm } = useDialog();
     const [visitors, setVisitors] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -43,7 +45,7 @@ export default function ResidentHistory() {
     }, []);
 
     const handleCancel = async (id) => {
-        const confirmed = window.confirm(
+        const confirmed = await confirm(
             "Are you sure you want to cancel this visitor registration?"
         );
 

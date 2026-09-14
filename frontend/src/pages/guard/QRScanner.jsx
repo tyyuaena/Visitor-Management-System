@@ -14,8 +14,6 @@ export default function QRScanner() {
     const [error, setError] = useState("");
     const [scanning, setScanning] = useState(true);
     const [cameraStarted, setCameraStarted] = useState(false);
-    const [manualToken, setManualToken] = useState("");
-    const [manualLoading, setManualLoading] = useState(false);
 
     // Handle QR value
     const handleQRCode = async (
@@ -129,7 +127,7 @@ export default function QRScanner() {
                 );
 
                 setError(
-                    "Unable to access the camera. Please allow camera permission or use manual QR entry."
+                    "Unable to access the camera. Please allow camera permission and try again."
                 );
 
                 setScanning(false);
@@ -161,67 +159,12 @@ export default function QRScanner() {
 
     }, [cameraStarted, scanning, visitor]);
 
-    // Manual QR token verification
-    const handleManualVerification =
-        async (e) => {
-
-            e.preventDefault();
-
-            if (!manualToken.trim()) {
-
-                setError(
-                    "Please enter the QR value."
-                );
-
-                return;
-            }
-
-            setManualLoading(true);
-            setError("");
-
-            try {
-
-                const response =
-                    await verifyQR(
-                        manualToken.trim()
-                    );
-
-                if (response.valid) {
-
-                    setVisitor(
-                        response.visitor
-                    );
-
-                } else {
-
-                    setError(
-                        response.message ||
-                        "Invalid QR code."
-                    );
-                }
-
-            } catch (err) {
-
-                console.error(err);
-
-                setError(
-                    err.response?.data?.message ||
-                    "QR verification failed."
-                );
-
-            } finally {
-
-                setManualLoading(false);
-            }
-        };
-
     // Reset scanner, resuming the camera immediately since the guard has
     // already opted into scanning mode once this session
     const handleScanAgain = () => {
 
         setVisitor(null);
         setError("");
-        setManualToken("");
         setScanning(true);
         setCameraStarted(true);
     };
@@ -323,49 +266,6 @@ export default function QRScanner() {
                             </button>
                         </>
                     )}
-
-                    {/* Manual input */}
-                    <div className="mt-6 border-t border-border pt-5">
-
-                        <h2 className="font-semibold text-text text-sm mb-1">
-                            Manual QR Verification
-                        </h2>
-
-                        <p className="text-xs text-text-muted mb-3">
-                            Use this if the camera is unavailable.
-                        </p>
-
-                        <form
-                            onSubmit={
-                                handleManualVerification
-                            }
-                        >
-
-                            <input
-                                type="text"
-                                value={manualToken}
-                                onChange={(e) =>
-                                    setManualToken(
-                                        e.target.value
-                                    )
-                                }
-                                placeholder="Enter QR value"
-                                className="w-full bg-surface-alt border border-border text-text rounded-lg px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                            />
-
-                            <button
-                                type="submit"
-                                disabled={manualLoading}
-                                className="w-full mt-3 bg-primary hover:bg-primary-dark text-white py-3 rounded-lg text-sm font-semibold disabled:opacity-50 transition-colors"
-                            >
-                                {manualLoading
-                                    ? "Verifying..."
-                                    : "Verify QR"}
-                            </button>
-
-                        </form>
-
-                    </div>
 
                 </div>
 

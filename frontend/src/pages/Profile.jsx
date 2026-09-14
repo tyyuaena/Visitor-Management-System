@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { fetchProfile, getStoredUser, changePassword } from "../services/authService";
 import TopNav from "../components/nav/TopNav";
 import PasswordInput from "../components/ui/PasswordInput";
+import PasswordRequirements from "../components/ui/PasswordRequirements";
+import { passwordMeetsRequirements } from "../utils/passwordPolicy";
 import { TABS_BY_ROLE } from "../constants/navTabs";
 
 const fieldClass =
@@ -38,6 +40,25 @@ export default function Profile() {
         };
         load();
     }, []);
+
+    // Live, as-you-type checks — surfaced immediately under the relevant
+    // field instead of only after a failed submit round-trip.
+    const passwordValid = passwordMeetsRequirements(form.password);
+    const sameAsCurrent =
+        form.current_password.length > 0 &&
+        form.password.length > 0 &&
+        form.password === form.current_password;
+    const confirmMismatch =
+        form.password_confirmation.length > 0 &&
+        form.password !== form.password_confirmation;
+
+    const canSubmit =
+        form.current_password &&
+        form.password &&
+        form.password_confirmation &&
+        passwordValid &&
+        !sameAsCurrent &&
+        !confirmMismatch;
 
     const handleChangePassword = async (e) => {
         e.preventDefault();
@@ -120,6 +141,7 @@ export default function Profile() {
                                 value={form.current_password}
                                 onChange={(e) => setForm({ ...form, current_password: e.target.value })}
                                 className={fieldClass}
+                                placeholder="Enter your current password"
                                 required
                             />
                         </div>
@@ -130,9 +152,18 @@ export default function Profile() {
                                 value={form.password}
                                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                                 className={fieldClass}
+                                placeholder="Enter a new password"
                                 minLength={8}
                                 required
                             />
+                            {form.password && (
+                                <PasswordRequirements value={form.password} />
+                            )}
+                            {sameAsCurrent && (
+                                <p className="mt-1.5 text-xs text-danger">
+                                    New password must be different from your current password.
+                                </p>
+                            )}
                         </div>
 
                         <div>
@@ -141,14 +172,20 @@ export default function Profile() {
                                 value={form.password_confirmation}
                                 onChange={(e) => setForm({ ...form, password_confirmation: e.target.value })}
                                 className={fieldClass}
+                                placeholder="Re-enter the new password"
                                 minLength={8}
                                 required
                             />
+                            {confirmMismatch && (
+                                <p className="mt-1.5 text-xs text-danger">
+                                    Passwords do not match.
+                                </p>
+                            )}
                         </div>
 
                         <button
                             type="submit"
-                            disabled={saving}
+                            disabled={saving || !canSubmit}
                             className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50"
                         >
                             {saving ? "Saving..." : "Change Password"}

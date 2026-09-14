@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { registerVisitor } from "../../services/visitorService";
 import { getStoredUser } from "../../services/authService";
 import TopNav from "../../components/nav/TopNav";
+import QRModal from "../../components/resident/QRModal";
 
 import { RESIDENT_TABS as TABS } from "../../constants/navTabs";
 
@@ -10,6 +11,22 @@ const fieldClass =
     "w-full bg-surface-alt border border-border text-text rounded-lg px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary";
 const labelClass =
     "block mb-1.5 text-xs font-semibold uppercase tracking-wide text-text-muted";
+
+// Matches the backend's own validation exactly (VisitorController@store:
+// 'regex:/^[0-9+\-\s()]+$/') so an invalid number is caught here instead of
+// only after a round trip to the server.
+const PHONE_PATTERN = /^[0-9+\-\s()]+$/;
+
+const PURPOSE_OPTIONS = [
+    "Guest Visit",
+    "Delivery",
+    "Food Delivery",
+    "Service Provider",
+    "Maintenance / Repair",
+    "Ride-Hailing Pickup/Drop-off",
+    "Moving In/Out",
+    "Other",
+];
 
 export default function RegisterVisitor() {
     const navigate = useNavigate();
@@ -19,10 +36,12 @@ export default function RegisterVisitor() {
         name: "",
         phone: "",
         purpose: "",
+        purposeOther: "",
         expected_at: "",
     });
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [registeredVisitor, setRegisteredVisitor] = useState(null);
 
     const handleChange = (e) => {
         setForm({
@@ -31,13 +50,41 @@ export default function RegisterVisitor() {
         });
     };
 
+    // Live, as-you-type check instead of only surfacing an invalid number
+    // after the server rejects it.
+    const phoneInvalid = form.phone.length > 0 && !PHONE_PATTERN.test(form.phone);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
+
+        if (phoneInvalid) {
+            setError("Please enter a valid phone number.");
+            return;
+        }
+
+        const purpose =
+            form.purpose === "Other" ? form.purposeOther.trim() : form.purpose;
+
+        if (form.purpose === "Other" && !purpose) {
+            setError("Please specify the purpose of visit.");
+            return;
+        }
+
         setLoading(true);
         try {
-            await registerVisitor(form);
-            navigate("/resident/history");
+            const data = await registerVisitor({
+                name: form.name,
+                phone: form.phone,
+                purpose,
+                expected_at: form.expected_at,
+            });
+
+            // Show the generated QR immediately (with the share sheet
+            // following automatically — see QRModal's autoShare) instead of
+            // sending the resident straight to the history list, where
+            // they'd have to find the visitor again and tap "View QR".
+            setRegisteredVisitor(data.visitor);
 
         } catch (error) {
             console.error(error);
@@ -91,6 +138,7 @@ export default function RegisterVisitor() {
                                 value={form.name}
                                 onChange={handleChange}
                                 className={fieldClass}
+                                placeholder="e.g. John Tan"
                                 required
                             />
                         </div>
@@ -100,13 +148,20 @@ export default function RegisterVisitor() {
                                 Phone
                             </label>
                             <input
-                                type="text"
+                                type="tel"
+                                inputMode="tel"
                                 name="phone"
                                 value={form.phone}
                                 onChange={handleChange}
                                 className={fieldClass}
+                                placeholder="e.g. 012-345 6789"
                                 required
                             />
+                            {phoneInvalid && (
+                                <p className="mt-1.5 text-xs text-danger">
+                                    Only numbers, spaces, and + - ( ) are allowed.
+                                </p>
+                            )}
                         </div>
                     </div>
 
@@ -114,14 +169,32 @@ export default function RegisterVisitor() {
                         <label className={labelClass}>
                             Purpose
                         </label>
-                        <input
-                            type="text"
+                        <select
                             name="purpose"
                             value={form.purpose}
                             onChange={handleChange}
                             className={fieldClass}
                             required
-                        />
+                        >
+                            <option value="" disabled>Select a purpose...</option>
+                            {PURPOSE_OPTIONS.map((option) => (
+                                <option key={option} value={option}>
+                                    {option}
+                                </option>
+                            ))}
+                        </select>
+
+                        {form.purpose === "Other" && (
+                            <input
+                                type="text"
+                                name="purposeOther"
+                                value={form.purposeOther}
+                                onChange={handleChange}
+                                className={`${fieldClass} mt-2`}
+                                placeholder="Please specify..."
+                                required
+                            />
+                        )}
                     </div>
 
                     <div>
@@ -140,7 +213,7 @@ export default function RegisterVisitor() {
 
                     <button
                         type="submit"
-                        disabled={loading}
+                        disabled={loading || phoneInvalid}
                         className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-semibold py-3.5 rounded-lg transition-colors disabled:opacity-50 mt-2"
                     >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
@@ -155,6 +228,14 @@ export default function RegisterVisitor() {
                     </button>
                 </form>
             </div>
+
+            {registeredVisitor && (
+                <QRModal
+                    visitor={registeredVisitor}
+                    autoShare
+                    onClose={() => navigate("/resident/history")}
+                />
+            )}
         </div>
     );
 }

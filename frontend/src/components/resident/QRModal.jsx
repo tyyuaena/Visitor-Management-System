@@ -1,14 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getVisitorQR, regenerateVisitorQR } from "../../services/visitorService";
 import { QR_STATUS_STYLES, QR_STATUS_LABELS } from "../../constants/qrStatus";
+import { useDialog } from "../../context/useDialog";
+import useLockBodyScroll from "../../hooks/useLockBodyScroll";
 
-export default function QRModal({ visitor, onClose, }) {
+export default function QRModal({ visitor, onClose, autoShare = false }) {
+    const { confirm, alertUser } = useDialog();
+    useLockBodyScroll();
     const [qrUrl, setQrUrl] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [qrStatus, setQrStatus] = useState(visitor.qr_status);
     const [regenerating, setRegenerating] = useState(false);
     const [reloadToken, setReloadToken] = useState(0);
+    const hasAutoSharedRef = useRef(false);
 
     // Load QR code
     useEffect(() => {
@@ -94,19 +99,32 @@ export default function QRModal({ visitor, onClose, }) {
                 });
             } else {
                 // Fallback
-                alert("File sharing is not supported on this device. Please download the QR code instead.");
+                await alertUser("File sharing is not supported on this device. Please download the QR code instead.");
             }
         } catch (error) {
             console.error("QR sharing failed:", error);
         }
     };
 
+    // Immediately after a visitor is first registered, the resident's next
+    // action is almost always "send this to the visitor" — so trigger the
+    // share sheet automatically the moment the QR finishes loading instead
+    // of making them tap Share themselves. Only ever fires once per modal
+    // (the ref guard), so it doesn't re-trigger after a Regenerate reload.
+    useEffect(() => {
+        if (autoShare && !loading && !error && qrUrl && !hasAutoSharedRef.current) {
+            hasAutoSharedRef.current = true;
+            handleShare();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [autoShare, loading, error, qrUrl]);
+
     // Regenerate QR code, invalidating the previous one
     const handleRegenerate = async () => {
         if (
-            !window.confirm(
+            !(await confirm(
                 "Generate a new QR code? The current one will stop working immediately."
-            )
+            ))
         ) {
             return;
         }
