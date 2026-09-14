@@ -71,38 +71,38 @@ export default function Login() {
 
         <div className="min-h-screen bg-bg flex items-center justify-center p-6">
 
-            <div className="w-full max-w-sm">
+            <div className="w-full max-w-xs">
 
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-text tracking-tight">
+                <div className="text-center mb-6">
+                    <h1 className="text-2xl font-bold text-text tracking-tight">
                         VMS
                     </h1>
-                    <p className="text-text-muted mt-1 text-sm">
+                    <p className="text-text-muted mt-1 text-xs">
                         Smart Visitor Management System
                     </p>
                 </div>
 
-                <div className="bg-surface border border-border rounded-2xl p-6">
+                <div className="bg-surface border border-border rounded-2xl p-5">
 
                     {successMessage && (
-                        <div className="bg-success-bg text-success text-sm p-3 rounded-lg mb-4">
+                        <div className="bg-success-bg text-success text-sm p-2.5 rounded-lg mb-3">
                             {successMessage}
                         </div>
                     )}
 
                     {error && (
-                        <div className="bg-danger-bg text-danger text-sm p-3 rounded-lg mb-4">
+                        <div className="bg-danger-bg text-danger text-sm p-2.5 rounded-lg mb-3">
                             {error}
                         </div>
                     )}
 
                     <form
                         onSubmit={handleSubmit}
-                        className="space-y-4"
+                        className="space-y-3"
                     >
 
                         <div>
-                            <label className="block mb-1.5 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                            <label className="block mb-1 text-xs font-semibold uppercase tracking-wide text-text-muted">
                                 Email
                             </label>
 
@@ -111,14 +111,14 @@ export default function Login() {
                                 name="email"
                                 value={form.email}
                                 onChange={handleChange}
-                                className="w-full bg-surface-alt border border-border text-text rounded-lg px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                className="w-full bg-surface-alt border border-border text-text rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                                 required
                             />
                         </div>
 
 
                         <div>
-                            <label className="block mb-1.5 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                            <label className="block mb-1 text-xs font-semibold uppercase tracking-wide text-text-muted">
                                 Password
                             </label>
 
@@ -126,7 +126,7 @@ export default function Login() {
                                 name="password"
                                 value={form.password}
                                 onChange={handleChange}
-                                className="w-full bg-surface-alt border border-border text-text rounded-lg px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                className="w-full bg-surface-alt border border-border text-text rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                                 required
                             />
                         </div>
@@ -144,7 +144,7 @@ export default function Login() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50"
+                            className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-2 rounded-lg transition-colors disabled:opacity-50"
                         >
                             {loading ? "Signing in..." : "Sign In"}
                         </button>
@@ -153,7 +153,7 @@ export default function Login() {
 
                 </div>
 
-                <p className="text-center text-text-muted text-sm mt-6">
+                <p className="text-center text-text-muted text-xs mt-4">
                     Resident accounts are created by your administrator.
                 </p>
 

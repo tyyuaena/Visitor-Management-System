@@ -19,7 +19,20 @@ cd "$frontend_dir"
 VITE_API_URL=/api npm run build
 
 cd "$backend_dir"
-rm -rf public/assets
+
+# Remove everything previously copied in by this script, not just
+# public/assets — otherwise a file dist/ used to produce (e.g. an icon
+# that's since been dropped from frontend/public) lingers here forever.
+# Laravel's own public/ files (index.php, .htaccess, favicon.ico,
+# robots.txt) are the only things this script must never touch.
+for entry in public/*; do
+    name="$(basename "$entry")"
+    case "$name" in
+        index.php|.htaccess|favicon.ico|robots.txt) ;;
+        *) rm -rf "$entry" ;;
+    esac
+done
+
 cp -r "$frontend_dir/dist/." public/
 
 echo "Frontend built and copied into backend/public. Run 'eb deploy' from backend/ next."

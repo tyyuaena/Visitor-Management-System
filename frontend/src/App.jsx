@@ -50,10 +50,22 @@ function RootRedirect() {
 }
 
 
+// Matches the "Loading..." text pattern already used by every page's own
+// data-fetching state — shown briefly while a lazy-loaded page's own chunk
+// downloads, so switching pages never just goes blank on a slow connection.
+function RouteFallback() {
+    return (
+        <div className="min-h-screen flex items-center justify-center">
+            <p className="text-text-muted text-sm">Loading...</p>
+        </div>
+    );
+}
+
+
 function App() {
     return (
         <BrowserRouter>
-            <Suspense fallback={null}>
+            <Suspense fallback={<RouteFallback />}>
             <Routes>
 
                 {/* Default Route */}
