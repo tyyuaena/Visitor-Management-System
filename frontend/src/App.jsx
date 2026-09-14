@@ -1,32 +1,35 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import { getStoredUser, dashboardPathForRole } from "./services/authService";
 
-// Auth pages
+// Login is kept as a static import — it's the page nearly every visitor
+// hits first, so it belongs in the initial bundle. Everything else here is
+// role-gated (a resident never needs the admin bundle, etc.), so it's
+// lazy-loaded instead: without this, every visitor downloaded all pages for
+// all roles up front — including html5-qrcode (guard's QR scanner), which
+// alone was the bulk of a 744KB single-chunk bundle.
 import Login from "./pages/auth/Login";
-import ActivateAccount from "./pages/auth/ActivateAccount";
-import ForgotPassword from "./pages/auth/ForgotPassword";
-import ResetPassword from "./pages/auth/ResetPassword";
 
-// Shared pages
-import Profile from "./pages/Profile";
+const ActivateAccount = lazy(() => import("./pages/auth/ActivateAccount"));
+const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
 
-// Resident pages
-import RegisterVisitor from "./pages/resident/RegisterVisitor";
-import ResidentHistory from "./pages/resident/ResidentHistory";
-import EditVisitor from "./pages/resident/EditVisitor";
+const Profile = lazy(() => import("./pages/Profile"));
 
-// Guard Pages
-import QRScanner from "./pages/guard/QRScanner";
-import GuardLog from "./pages/guard/GuardLog";
+const RegisterVisitor = lazy(() => import("./pages/resident/RegisterVisitor"));
+const ResidentHistory = lazy(() => import("./pages/resident/ResidentHistory"));
+const EditVisitor = lazy(() => import("./pages/resident/EditVisitor"));
 
-// Admin Page
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminUsers from "./pages/admin/AdminUsers";
-import AdminUnits from "./pages/admin/AdminUnits";
-import AdminReports from "./pages/admin/AdminReports";
-import AdminSettings from "./pages/admin/AdminSettings";
+const QRScanner = lazy(() => import("./pages/guard/QRScanner"));
+const GuardLog = lazy(() => import("./pages/guard/GuardLog"));
+
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminUnits = lazy(() => import("./pages/admin/AdminUnits"));
+const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 
 
 // Sends a visitor to login (if signed out) or their own dashboard (if signed in)
@@ -50,6 +53,7 @@ function RootRedirect() {
 function App() {
     return (
         <BrowserRouter>
+            <Suspense fallback={null}>
             <Routes>
 
                 {/* Default Route */}
@@ -168,6 +172,7 @@ function App() {
                 <Route path="*" element={<RootRedirect />} />
 
             </Routes>
+            </Suspense>
         </BrowserRouter>
     );
 }
